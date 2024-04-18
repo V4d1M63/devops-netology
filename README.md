@@ -1,675 +1,89 @@
-## Домашнее задание к занятию 14 «Средство визуализации Grafana» - Вдовин Вадим
+### Домашнее задание к занятию «Микросервисы: принципы» - Вдовин Вадим
 
-### Обязательные задания
+Вы работаете в крупной компании, которая строит систему на основе микросервисной архитектуры. Вам как DevOps-специалисту необходимо выдвинуть предложение по организации инфраструктуры для разработки и эксплуатации.
 
-Задание 1
+## Задача 1: API Gateway
 
-- Используя директорию help внутри этого домашнего задания, запустите связку prometheus-grafana.
-- Зайдите в веб-интерфейс grafana, используя авторизационные данные, указанные в манифесте docker-compose.
-- Подключите поднятый вами prometheus, как источник данных.
-- Решение домашнего задания — скриншот веб-интерфейса grafana со списком подключенных Datasource.
+Предложите решение для обеспечения реализации API Gateway. Составьте сравнительную таблицу возможностей различных программных решений. На основе таблицы сделайте выбор решения.
 
-![1](https://github.com/V4d1M63/devops-netology/assets/130470784/616ebb54-41af-4141-bd5d-b92970df6f03)
+Решение должно соответствовать следующим требованиям:
 
-Задание 2
+- маршрутизация запросов к нужному сервису на основе конфигурации,
+- возможность проверки аутентификационной информации в запросах,
+- обеспечение терминации HTTPS.
 
-Изучите самостоятельно ресурсы:
+Обоснуйте свой выбор.
 
-- PromQL tutorial for beginners and humans.
-- Understanding Machine CPU usage.
-- Introduction to PromQL, the Prometheus query language.
+## Ответ: 
 
-Создайте Dashboard и в ней создайте Panels:
+API Gateway является важным компонентом микросервисной архитектуры, позволяя маршрутизировать запросы к различным службам, обеспечивать безопасность и управлять трафиком.
 
-- утилизация CPU для nodeexporter (в процентах, 100-idle);
-```
-(avg by (instance) (rate(node_cpu_seconds_total{mode="idle",job="nodeexporter"}[1m])) * 100)
-```
-- CPULA 1/5/15;
-```
-node_load1{job="nodeexporter"}
-node_load5{job="nodeexporter"}
-node_load15{job="nodeexporter"}
-```
+Давайте рассмотрим три популярных решения для API Gateway и сравним их:
 
-- количество свободной оперативной памяти;
-```
-node_memory_MemFree_bytes{job="nodeexporter"} / node_memory_MemTotal_bytes{job="nodeexporter"} * 100
-node_memory_MemFree_bytes{job="nodeexporter"} / 1073741824
-```
-- количество места на файловой системе.
-```
-node_memory_MemFree_bytes / (1024 * 1024)
-```
-Для решения этого задания приведите promql-запросы для выдачи этих метрик, а также скриншот получившейся Dashboard.
+1. Amazon API Gateway
+2. Kong
+3. Nginx
 
-![2](https://github.com/V4d1M63/devops-netology/assets/130470784/bd497f73-5f32-4d86-b2bf-e7ac0db97290)
+Сравнительная таблица:
 
-Задание 3
+|Характеристика	| Amazon API Gateway | Kong | Nginx |
+|--------|--------|-------|--------------------------|
+|Маршрутизация на основе конфигурации|	Да |	Да |	Да  (с использованием модулей) |
+|Проверка аутентификационной информации|	Да (поддерживает AWS IAM, Lambda, Cognito и др.)|	Да (с использованием плагинов)|	Да (с использованием модулей)|
+|Терминация HTTPS|	Да|	Да|	Да|
+|Расширяемость|	Ограничено AWS-сервисами|	Да (с помощью плагинов)|	Да (с помощью модулей)|
+|Интеграция с облаками|	Интегрировано с AWS|Может быть развернуто в любом облаке|	Может быть развернуто в любом облаке|
+|Цена|	По запросу и трафику|	Бесплатная и коммерческая версия|	Бесплатная и коммерческая версия|
 
-- Создайте для каждой Dashboard подходящее правило alert — можно обратиться к первой лекции в блоке «Мониторинг».
-- В качестве решения задания приведите скриншот вашей итоговой Dashboard.
+На основе вышеприведенной таблицы:
 
-![3](https://github.com/V4d1M63/devops-netology/assets/130470784/5433030a-f761-41a5-8dd5-a1223ea214d7)
+- Amazon API Gateway будет логичным выбором из-за глубокой интеграции с другими AWS-сервисами.
 
-Задание 4
+- Kong предлагает большую гибкость и расширяемость с помощью плагинов, а также может быть развернут в любом облаке или на локальном сервере.
 
-- Сохраните ваш Dashboard.Для этого перейдите в настройки Dashboard, выберите в боковом меню «JSON MODEL». Далее скопируйте отображаемое json-содержимое в отдельный файл и сохраните его.
-- В качестве решения задания приведите листинг этого файла.
+- Nginx - это проверенное временем решение, которое можно настроить для работы в качестве API Gateway. Он может быть не таким функциональным "из коробки" как другие решения, но с правильной конфигурацией и модулями он может выполнять большинство необходимых задач.
 
-```
-{
-  "annotations": {
-    "list": [
-      {
-        "builtIn": 1,
-        "datasource": "-- Grafana --",
-        "enable": true,
-        "hide": true,
-        "iconColor": "rgba(0, 211, 255, 1)",
-        "name": "Annotations & Alerts",
-        "type": "dashboard"
-      }
-    ]
-  },
-  "editable": true,
-  "gnetId": null,
-  "graphTooltip": 0,
-  "id": 1,
-  "links": [],
-  "panels": [
-    {
-      "alert": {
-        "alertRuleTags": {},
-        "conditions": [
-          {
-            "evaluator": {
-              "params": [
-                0.6
-              ],
-              "type": "gt"
-            },
-            "operator": {
-              "type": "and"
-            },
-            "query": {
-              "params": [
-                "A",
-                "5m",
-                "now"
-              ]
-            },
-            "reducer": {
-              "params": [],
-              "type": "avg"
-            },
-            "type": "query"
-          }
-        ],
-        "executionErrorState": "alerting",
-        "for": "5m",
-        "frequency": "1m",
-        "handler": 1,
-        "name": "Panel Title alert",
-        "noDataState": "no_data",
-        "notifications": []
-      },
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": null,
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 0
-      },
-      "hiddenSeries": false,
-      "id": 4,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "7.4.0",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "node_load1{job=\"nodeexporter\"}",
-          "interval": "",
-          "legendFormat": "",
-          "refId": "A"
-        },
-        {
-          "expr": "node_load5{job=\"nodeexporter\"}",
-          "hide": false,
-          "interval": "",
-          "legendFormat": "",
-          "refId": "B"
-        },
-        {
-          "expr": "node_load15{job=\"nodeexporter\"}",
-          "hide": false,
-          "interval": "",
-          "legendFormat": "",
-          "refId": "C"
-        }
-      ],
-      "thresholds": [
-        {
-          "colorMode": "critical",
-          "fill": true,
-          "line": true,
-          "op": "gt",
-          "value": 0.6,
-          "visible": true
-        }
-      ],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Panel Title",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "alert": {
-        "alertRuleTags": {},
-        "conditions": [
-          {
-            "evaluator": {
-              "params": [
-                35
-              ],
-              "type": "gt"
-            },
-            "operator": {
-              "type": "and"
-            },
-            "query": {
-              "params": [
-                "A",
-                "5m",
-                "now"
-              ]
-            },
-            "reducer": {
-              "params": [],
-              "type": "avg"
-            },
-            "type": "query"
-          }
-        ],
-        "executionErrorState": "alerting",
-        "for": "5m",
-        "frequency": "1m",
-        "handler": 1,
-        "name": "Panel Title alert",
-        "noDataState": "no_data",
-        "notifications": []
-      },
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": null,
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 0
-      },
-      "hiddenSeries": false,
-      "id": 6,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "7.4.0",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "node_memory_MemFree_bytes{job=\"nodeexporter\"} / node_memory_MemTotal_bytes{job=\"nodeexporter\"} * 100",
-          "interval": "",
-          "legendFormat": "",
-          "refId": "A"
-        },
-        {
-          "expr": "node_memory_MemFree_bytes{job=\"nodeexporter\"} / 1073741824",
-          "hide": false,
-          "interval": "",
-          "legendFormat": "",
-          "refId": "B"
-        }
-      ],
-      "thresholds": [
-        {
-          "colorMode": "critical",
-          "fill": true,
-          "line": true,
-          "op": "gt",
-          "value": 35,
-          "visible": true
-        }
-      ],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Panel Title",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "alert": {
-        "alertRuleTags": {},
-        "conditions": [
-          {
-            "evaluator": {
-              "params": [
-                101
-              ],
-              "type": "gt"
-            },
-            "operator": {
-              "type": "and"
-            },
-            "query": {
-              "params": [
-                "A",
-                "5m",
-                "now"
-              ]
-            },
-            "reducer": {
-              "params": [],
-              "type": "avg"
-            },
-            "type": "query"
-          }
-        ],
-        "executionErrorState": "alerting",
-        "for": "5m",
-        "frequency": "1m",
-        "handler": 1,
-        "name": "Panel Title alert",
-        "noDataState": "no_data",
-        "notifications": []
-      },
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": null,
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 8
-      },
-      "hiddenSeries": false,
-      "id": 2,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "7.4.0",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "(avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\",job=\"nodeexporter\"}[1m])) * 100)",
-          "interval": "",
-          "legendFormat": "",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [
-        {
-          "colorMode": "critical",
-          "fill": true,
-          "line": true,
-          "op": "gt",
-          "value": 101,
-          "visible": true
-        }
-      ],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Panel Title",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "alert": {
-        "alertRuleTags": {},
-        "conditions": [
-          {
-            "evaluator": {
-              "params": [
-                1355
-              ],
-              "type": "gt"
-            },
-            "operator": {
-              "type": "and"
-            },
-            "query": {
-              "params": [
-                "A",
-                "5m",
-                "now"
-              ]
-            },
-            "reducer": {
-              "params": [],
-              "type": "avg"
-            },
-            "type": "query"
-          }
-        ],
-        "executionErrorState": "alerting",
-        "for": "5m",
-        "frequency": "1m",
-        "handler": 1,
-        "name": "Panel Title alert",
-        "noDataState": "no_data",
-        "notifications": []
-      },
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": null,
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 8
-      },
-      "hiddenSeries": false,
-      "id": 8,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "7.4.0",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "node_memory_MemFree_bytes / (1024 * 1024)",
-          "interval": "",
-          "legendFormat": "",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [
-        {
-          "colorMode": "critical",
-          "fill": true,
-          "line": true,
-          "op": "gt",
-          "value": 1355,
-          "visible": true
-        }
-      ],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Panel Title",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    }
-  ],
-  "schemaVersion": 27,
-  "style": "dark",
-  "tags": [],
-  "templating": {
-    "list": []
-  },
-  "time": {
-    "from": "now-6h",
-    "to": "now"
-  },
-  "timepicker": {},
-  "timezone": "",
-  "title": "New dashboard Copy",
-  "uid": "gcVc6CiSz",
-  "version": 10
-}
-```
+Выбор: Если бы мне нужно было выбирать решение, основываясь на вышеприведенных требованиях и без учета других факторов (таких как стоимость, интеграция с существующей инфраструктурой и т. д.), я бы выбрал Kong. Он предлагает необходимую функциональность, гибкость и может быть развернут в любом окружении.
+
+## Задача 2: Брокер сообщений
+
+Составьте таблицу возможностей различных брокеров сообщений. На основе таблицы сделайте обоснованный выбор решения.
+
+Решение должно соответствовать следующим требованиям:
+
+- поддержка кластеризации для обеспечения надёжности,
+- хранение сообщений на диске в процессе доставки,
+- высокая скорость работы,
+- поддержка различных форматов сообщений,
+- разделение прав доступа к различным потокам сообщений,
+- простота эксплуатации.
+
+Обоснуйте свой выбор.
+
+Ответ:
+
+|Брокер сообщений|	Поддержка кластеризации|	Хранение сообщений на диске|	Высокая скорость работы|	Поддержка форматов сообщений|	Разделение прав доступа|	Простота эксплуатации|
+|--------------|------------|-------------|-------------|-------------|---------|-----------|
+|Apache Kafka|	Да|	Да|	Да|	JSON, Avro, и другие|	Да|	Средняя|
+|RabbitMQ|	Да|	Да|	Да|	Разнообразные форматы|	Да|	Высокая|
+|Apache Pulsar|	Да|	Да| Да|	JSON, Avro, и другие|	Да|	Высокая|
+|ActiveMQ|	Да|	Да|	Да|	Разнообразные форматы|	Да|	Высокая|
+|NATS|	Да|	Нет (все в памяти)|	Очень высокая|	JSON, Protobuf и другие|	Да|	Высокая|
+
+## Выбор: Apache Kafka
+
+Обоснование:
+
+1. Поддержка кластеризации: Apache Kafka известен своей отличной поддержкой кластеризации, что обеспечивает высокую надежность и горизонтальное масштабирование.
+
+2. Хранение сообщений на диске: Kafka хранит сообщения на диске, что делает его надежным в случае сбоев, и обеспечивает возможность восстановления сообщений.
+
+3. Высокая скорость работы: Apache Kafka спроектирован для обработки больших объемов данных с высокой производительностью, что делает его подходящим для высоконагруженных систем.
+
+4. Поддержка различных форматов сообщений: Kafka поддерживает разнообразные форматы сообщений, включая JSON и Avro, что делает его гибким для различных приложений.
+
+5. Разделение прав доступа: Kafka позволяет настраивать права доступа и разделение тем (topics) между пользователями, обеспечивая безопасность.
+
+6. Простота эксплуатации: Хотя Kafka может потребовать более сложной настройки по сравнению с некоторыми другими брокерами, он предоставляет множество ресурсов и документации для помощи в установке и настройке.
+
+В итоге, Apache Kafka предоставляет широкий набор возможностей, которые соответствуют вашим требованиям, и он широко используется в крупных и высоконагруженных системах для обработки потоков данных.
