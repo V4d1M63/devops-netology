@@ -1,8 +1,8 @@
-# Домашнее задание к занятию «Базовые объекты K8S» - Вдовин Вадим
+# Домашнее задание к занятию «Запуск приложений в K8S» - Вдовин Вадим
 
 ### Цель задания
 
-В тестовой среде для работы с Kubernetes, установленной в предыдущем ДЗ, необходимо развернуть Pod с приложением и подключиться к нему со своего локального компьютера. 
+В тестовой среде для работы с Kubernetes, установленной в предыдущем ДЗ, необходимо развернуть Deployment с приложением, состоящим из нескольких контейнеров, и масштабировать его.
 
 ------
 
@@ -10,175 +10,226 @@
 
 1. Установленное k8s-решение (например, MicroK8S).
 2. Установленный локальный kubectl.
-3. Редактор YAML-файлов с подключенным Git-репозиторием.
+3. Редактор YAML-файлов с подключённым git-репозиторием.
 
 ------
 
 ### Инструменты и дополнительные материалы, которые пригодятся для выполнения задания
 
-1. Описание [Pod](https://kubernetes.io/docs/concepts/workloads/pods/) и примеры манифестов.
-2. Описание [Service](https://kubernetes.io/docs/concepts/services-networking/service/).
+1. [Описание](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/) Deployment и примеры манифестов.
+2. [Описание](https://kubernetes.io/docs/concepts/workloads/pods/init-containers/) Init-контейнеров.
+3. [Описание](https://github.com/wbitt/Network-MultiTool) Multitool.
 
 ------
 
-### Задание 1. Создать Pod с именем hello-world
+### Задание 1. Создать Deployment и обеспечить доступ к репликам приложения из другого Pod
 
-1. Создать манифест (yaml-конфигурацию) Pod.
-2. Использовать image - gcr.io/kubernetes-e2e-test-images/echoserver:2.2.
-3. Подключиться локально к Pod с помощью `kubectl port-forward` и вывести значение (curl или в браузере).
+1. Создать Deployment приложения, состоящего из двух контейнеров — nginx и multitool. Решить возникшую ошибку.
 
 ```
-root@vm2:~# cat hello-world.yaml 
-apiVersion : v1
-kind: Pod
+user@vm1:~$ cat deployment.yaml
+apiVersion : apps/v1
+kind: Deployment
 metadata:
-  name: pod
-spec:
-  containers:
-    - name : pod
-      image: gcr.io/kubernetes-e2e-test-images/echoserver:2.2
-      ports:
-        - containerPort: 8080
-root@vm2:~# kubectl apply -f hello-world.yaml
-pod/pod created
-```
-
-```
-root@vm2:~# microk8s kubectl get pods
-NAME          READY   STATUS    RESTARTS   AGE
-hello-world   1/1     Running   0          52s
-```
-
-```
-root@vm2:~# kubectl port-forward pod/pod 8888:8080
-Forwarding from 127.0.0.1:8888 -> 8080
-Forwarding from [::1]:8888 -> 8080
-Handling connection for 8888
-```
-
-<details>
-<summary>curl --insecure localhost:8001</summary>
-root@vm2:/home/user# curl --insecure localhost:8888
-
-
-Hostname: pod
-
-Pod Information:
-        -no pod information available-
-
-Server values:
-        server_version=nginx: 1.12.2 - lua: 10010
-
-Request Information:
-        client_address=127.0.0.1
-        method=GET
-        real path=/
-        query=
-        request_version=1.1
-        request_scheme=http
-        request_uri=http://localhost:8080/
-
-Request Headers:
-        accept=*/*  
-        host=localhost:8888  
-        user-agent=curl/7.81.0  
-
-Request Body:
-        -no body in request-
-</details>
-
-------
-
-### Задание 2. Создать Service и подключить его к Pod
-
-1. Создать Pod с именем netology-web.
-2. Использовать image — gcr.io/kubernetes-e2e-test-images/echoserver:2.2.
-3. Создать Service с именем netology-svc и подключить к netology-web.
-4. Подключиться локально к Service с помощью `kubectl port-forward` и вывести значение (curl или в браузере).
-
-```
-root@vm2:~# cat netology-web.yaml 
-apiVersion : v1
-kind: Pod
-metadata:
-  name: netology-web
+  name: netology1
   labels:
-    app: netology
+    app: nginx
 spec:
-  containers:
-    - name : netology-web
-      image: gcr.io/kubernetes-e2e-test-images/echoserver:2.2
-      ports:
-        - containerPort: 8080
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+          ports:
+            - containerPort: 80
+        - name: multitool
+          image: wbitt/network-multitool
+          ports:
+            - containerPort: 8080
+          env:
+            - name: HTTP_PORT
+              value: "8080"
 ```
 ```
-root@vm2:~# cat netology-svc.yaml 
+user@vm1:~$ kubectl apply -f deployment.yaml
+deployment.apps/netology1 created
+
+user@vm1:~$ microk8s kubectl get deployments
+NAME        READY   UP-TO-DATE   AVAILABLE   AGE
+netology1   1/1     1            1           11m
+```
+
+2. После запуска увеличить количество реплик работающего приложения до 2.
+
+```
+Изменил на 2 реплики.
+root@vm1:/home/user# microk8s kubectl apply -f deployment.yaml
+deployment.apps/netology1 configured
+```
+
+3. Продемонстрировать количество подов до и после масштабирования.
+
+До
+```
+root@vm1:/home/user# microk8s kubectl get pods
+NAME                         READY   STATUS    RESTARTS   AGE
+netology1-7d974d59c4-hwg6w   2/2     Running   0          5m
+```
+
+После
+```
+root@vm1:/home/user# microk8s kubectl get pods
+NAME                         READY   STATUS    RESTARTS   AGE
+netology1-7d974d59c4-hwg6w   2/2     Running   0          13m
+netology1-7d974d59c4-2blx5   2/2     Running   0          63s
+```
+4. Создать Service, который обеспечит доступ до реплик приложений из п.1.
+
+```
+root@vm1:/home/user# cat service.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: netology-svc
+  name: nginx-svc
 spec:
   ports:
-  - port: 80
-    targetPort: 8080
+    - name: web
+      port: 80
+      targetPort: 80
   selector:
-    app: netology
+    app: nginx
 ```
 ```
-root@vm2:~# kubectl apply -f netology-web.yaml
-pod/netology-web created
-root@vm2:~# kubectl apply -f netology-svc.yaml
-service/netology-svc created
-root@vm2:~# microk8s kubectl get pods
-NAME           READY   STATUS    RESTARTS   AGE
-hello-world    1/1     Running   0          29m
-netology-web   1/1     Running   0          2m49s
+root@vm1:/home/user# microk8s kubectl apply -f service.yaml
+service/nginx-svc created
+```
+```
+root@vm1:/home/user# microk8s kubectl get svc
+NAME         TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)   AGE
+kubernetes   ClusterIP   10.152.183.1     <none>        443/TCP   32m
+nginx-svc    ClusterIP   10.152.183.186   <none>        80/TCP    3m34s
+```
 
-root@vm2:~# kubectl get pods -o wide
-NAME           READY   STATUS    RESTARTS   AGE   IP             NODE   NOMINATED NODE   READINESS GATES
-hello-world    1/1     Running   0          28m   10.1.185.198   vm2    <none>           <none>
-netology-web   1/1     Running   0          91s   10.1.185.201   vm2    <none>           <none>
+5. Создать отдельный Pod с приложением multitool и убедиться с помощью `curl`, что из пода есть доступ до приложений из п.1.
 
-root@vm2:~# kubectl get service -o wide
-NAME           TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)   AGE    SELECTOR
-kubernetes     ClusterIP   10.152.183.1     <none>        443/TCP   6h7m   <none>
-netology-svc   ClusterIP   10.152.183.143   <none>        80/TCP    93s    app=netology
+```
+root@vm1:/home/user# microk8s kubectl run multitool --image=wbitt/network-multitool
+pod/multitool created
+
+root@vm1:/home/user# microk8s kubectl exec multitool -- curl 10.152.183.186
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   615  100   615    0     0   831k      0 --:--:-- --:--:-- --:--:--  600k
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+html { color-scheme: light dark; }
+body { width: 35em; margin: 0 auto;
+font-family: Tahoma, Verdana, Arial, sans-serif; }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+```
+
+------
+
+### Задание 2. Создать Deployment и обеспечить старт основного контейнера при выполнении условий
+
+1. Создать Deployment приложения nginx и обеспечить старт контейнера только после того, как будет запущен сервис этого приложения.
+
+```
+cat deployment2.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+  labels:
+    app.kubernetes.io/name: MyApp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+spec:
+  containers:
+  - name: myapp-container
+    image: nginx:1.14.2
+  initContainers:
+  - name: init-myservice
+    image: busybox:1.28
+    command: ['sh', '-c', 'until nslookup nginx-svc2; do echo waiting for nginx-svc2; sleep 2; done;']
+```
+```
+root@vm1:/home/user# microk8s kubectl apply -f deployment2.yaml
+pod/myapp-pod created
+```
+2. Убедиться, что nginx не стартует. В качестве Init-контейнера взять busybox.
+
+```
+root@vm1:/home/user# microk8s kubectl logs myapp-pod
+Defaulted container "myapp-container" out of: myapp-container, init-myservice (init)
+Error from server (BadRequest): container "myapp-container" in pod "myapp-pod" is waiting to start: PodInitializing
+
+```
+
+3. Создать и запустить Service. Убедиться, что Init запустился.
+
+```
+root@vm1:/home/user# cat service2.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-svc2
+spec:
+  ports:
+    - name: web
+      port: 80
+      targetPort: 80
+  selector:
+    app: myapp
 ```
 
 ```
-root@vm2:~kubectl port-forward service/netology-svc 8889:80
-Forwarding from 127.0.0.1:8889 -> 8080
-Forwarding from [::1]:8889 -> 8080
-Handling connection for 8889
+root@vm1:/home/user# microk8s kubectl apply -f service2.yaml
+service/nginx-svc2 created
+
 ```
-<details>
-<summary>curl --insecure localhost:8001</summary>
-root@vm2:/home/user# curl --insecure localhost:8889
+4. Продемонстрировать состояние пода до и после запуска сервиса.
 
+```
+До
+microk8s kubectl get pods
+NAME                          READY   STATUS     RESTARTS   AGE
+myapp-pod                     0/1     Init:0/1   0          55s
 
-Hostname: netology-web
-
-Pod Information:
-        -no pod information available-
-
-Server values:
-        server_version=nginx: 1.12.2 - lua: 10010
-
-Request Information:
-        client_address=127.0.0.1
-        method=GET
-        real path=/
-        query=
-        request_version=1.1
-        request_scheme=http
-        request_uri=http://localhost:8080/
-
-Request Headers:
-        accept=*/*  
-        host=localhost:8889  
-        user-agent=curl/7.81.0  
-
-Request Body:
-        -no body in request-
-</details>
+После
+microk8s kubectl get pods
+NAME                          READY   STATUS    RESTARTS   AGE
+myapp-pod                     1/1     Running   0          3m16s
+```
 ------
