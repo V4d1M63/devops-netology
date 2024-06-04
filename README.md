@@ -1,235 +1,95 @@
-# Домашнее задание к занятию «Запуск приложений в K8S» - Вдовин Вадим
+# Домашнее задание к занятию «Хранение в K8s. Часть 1» - Вдовин Вадим
 
 ### Цель задания
 
-В тестовой среде для работы с Kubernetes, установленной в предыдущем ДЗ, необходимо развернуть Deployment с приложением, состоящим из нескольких контейнеров, и масштабировать его.
+В тестовой среде Kubernetes нужно обеспечить обмен файлами между контейнерам пода и доступ к логам ноды.
 
 ------
 
 ### Чеклист готовности к домашнему заданию
 
-1. Установленное k8s-решение (например, MicroK8S).
+1. Установленное K8s-решение (например, MicroK8S).
 2. Установленный локальный kubectl.
-3. Редактор YAML-файлов с подключённым git-репозиторием.
+3. Редактор YAML-файлов с подключенным GitHub-репозиторием.
 
 ------
 
-### Инструменты и дополнительные материалы, которые пригодятся для выполнения задания
+### Дополнительные материалы для выполнения задания
 
-1. [Описание](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/) Deployment и примеры манифестов.
-2. [Описание](https://kubernetes.io/docs/concepts/workloads/pods/init-containers/) Init-контейнеров.
-3. [Описание](https://github.com/wbitt/Network-MultiTool) Multitool.
+1. [Инструкция по установке MicroK8S](https://microk8s.io/docs/getting-started).
+2. [Описание Volumes](https://kubernetes.io/docs/concepts/storage/volumes/).
+3. [Описание Multitool](https://github.com/wbitt/Network-MultiTool).
 
 ------
 
-### Задание 1. Создать Deployment и обеспечить доступ к репликам приложения из другого Pod
+### Задание 1 
 
-1. Создать Deployment приложения, состоящего из двух контейнеров — nginx и multitool. Решить возникшую ошибку.
+**Что нужно сделать**
 
-```
-user@vm1:~$ cat deployment.yaml
-apiVersion : apps/v1
-kind: Deployment
-metadata:
-  name: netology1
-  labels:
-    app: nginx
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: nginx
-  template:
-    metadata:
-      labels:
-        app: nginx
-    spec:
-      containers:
-        - name: nginx
-          image: nginx
-          ports:
-            - containerPort: 80
-        - name: multitool
-          image: wbitt/network-multitool
-          ports:
-            - containerPort: 8080
-          env:
-            - name: HTTP_PORT
-              value: "8080"
-```
-```
-user@vm1:~$ kubectl apply -f deployment.yaml
-deployment.apps/netology1 created
+Создать Deployment приложения, состоящего из двух контейнеров и обменивающихся данными.
 
-user@vm1:~$ microk8s kubectl get deployments
-NAME        READY   UP-TO-DATE   AVAILABLE   AGE
-netology1   1/1     1            1           11m
-```
-
-2. После запуска увеличить количество реплик работающего приложения до 2.
+1. Создать Deployment приложения, состоящего из контейнеров busybox и multitool.
+2. Сделать так, чтобы busybox писал каждые пять секунд в некий файл в общей директории.
+3. Обеспечить возможность чтения файла контейнером multitool.
+4. Продемонстрировать, что multitool может читать файл, который периодоически обновляется.
+5. Предоставить манифесты Deployment в решении, а также скриншоты или вывод команды из п. 4.
 
 ```
-Изменил на 2 реплики.
-root@vm1:/home/user# microk8s kubectl apply -f deployment.yaml
-deployment.apps/netology1 configured
-```
+root@vm1:/home/user# microk8s kubectl apply -f deployment1.yaml
+deployment.apps/deployment created
 
-3. Продемонстрировать количество подов до и после масштабирования.
+root@vm1:/home/user# microk8s kubectl get deployments
+NAME         READY   UP-TO-DATE   AVAILABLE   AGE
+deployment   1/1     1            1           16s
 
-До
-```
 root@vm1:/home/user# microk8s kubectl get pods
-NAME                         READY   STATUS    RESTARTS   AGE
-netology1-7d974d59c4-hwg6w   2/2     Running   0          5m
-```
+NAME                          READY   STATUS    RESTARTS   AGE
+deployment-7bd9c887c4-s75kx   2/2     Running   0          21s
 
-После
-```
-root@vm1:/home/user# microk8s kubectl get pods
-NAME                         READY   STATUS    RESTARTS   AGE
-netology1-7d974d59c4-hwg6w   2/2     Running   0          13m
-netology1-7d974d59c4-2blx5   2/2     Running   0          63s
-```
-4. Создать Service, который обеспечит доступ до реплик приложений из п.1.
+root@vm1:/home/user# microk8s kubectl exec deployment-7bd9c887c4-s75kx -c multitool  -- tail -n 10 /my/output.txt
+Sat Oct 21 08:34:31 UTC 2023
+Every 5.0s: date                                            2023-10-21 08:34:36
 
-```
-root@vm1:/home/user# cat service.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: nginx-svc
-spec:
-  ports:
-    - name: web
-      port: 80
-      targetPort: 80
-  selector:
-    app: nginx
-```
-```
-root@vm1:/home/user# microk8s kubectl apply -f service.yaml
-service/nginx-svc created
-```
-```
-root@vm1:/home/user# microk8s kubectl get svc
-NAME         TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)   AGE
-kubernetes   ClusterIP   10.152.183.1     <none>        443/TCP   32m
-nginx-svc    ClusterIP   10.152.183.186   <none>        80/TCP    3m34s
-```
+Sat Oct 21 08:34:36 UTC 2023
+Every 5.0s: date                                            2023-10-21 08:34:41
 
-5. Создать отдельный Pod с приложением multitool и убедиться с помощью `curl`, что из пода есть доступ до приложений из п.1.
-
-```
-root@vm1:/home/user# microk8s kubectl run multitool --image=wbitt/network-multitool
-pod/multitool created
-
-root@vm1:/home/user# microk8s kubectl exec multitool -- curl 10.152.183.186
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-100   615  100   615    0     0   831k      0 --:--:-- --:--:-- --:--:--  600k
-<!DOCTYPE html>
-<html>
-<head>
-<title>Welcome to nginx!</title>
-<style>
-html { color-scheme: light dark; }
-body { width: 35em; margin: 0 auto;
-font-family: Tahoma, Verdana, Arial, sans-serif; }
-</style>
-</head>
-<body>
-<h1>Welcome to nginx!</h1>
-<p>If you see this page, the nginx web server is successfully installed and
-working. Further configuration is required.</p>
-
-<p>For online documentation and support please refer to
-<a href="http://nginx.org/">nginx.org</a>.<br/>
-Commercial support is available at
-<a href="http://nginx.com/">nginx.com</a>.</p>
-
-<p><em>Thank you for using nginx.</em></p>
-</body>
-</html>
+Sat Oct 21 08:34:41 UTC 2023
+Every 5.0s: date                                            2023-10-21 08:34:47
 ```
 
 ------
 
-### Задание 2. Создать Deployment и обеспечить старт основного контейнера при выполнении условий
+### Задание 2
 
-1. Создать Deployment приложения nginx и обеспечить старт контейнера только после того, как будет запущен сервис этого приложения.
+**Что нужно сделать**
 
-```
-cat deployment2.yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: myapp-pod
-  labels:
-    app.kubernetes.io/name: MyApp
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: myapp
-  template:
-    metadata:
-      labels:
-        app: myapp
-spec:
-  containers:
-  - name: myapp-container
-    image: nginx:1.14.2
-  initContainers:
-  - name: init-myservice
-    image: busybox:1.28
-    command: ['sh', '-c', 'until nslookup nginx-svc2; do echo waiting for nginx-svc2; sleep 2; done;']
-```
+Создать DaemonSet приложения, которое может прочитать логи ноды.
+
+1. Создать DaemonSet приложения, состоящего из multitool.
+2. Обеспечить возможность чтения файла `/var/log/syslog` кластера MicroK8S.
+3. Продемонстрировать возможность чтения файла изнутри пода.
+4. Предоставить манифесты Deployment, а также скриншоты или вывод команды из п. 2.
+
 ```
 root@vm1:/home/user# microk8s kubectl apply -f deployment2.yaml
-pod/myapp-pod created
-```
-2. Убедиться, что nginx не стартует. В качестве Init-контейнера взять busybox.
+daemonset.apps/daemonset created
 
-```
-root@vm1:/home/user# microk8s kubectl logs myapp-pod
-Defaulted container "myapp-container" out of: myapp-container, init-myservice (init)
-Error from server (BadRequest): container "myapp-container" in pod "myapp-pod" is waiting to start: PodInitializing
-
-```
-
-3. Создать и запустить Service. Убедиться, что Init запустился.
-
-```
-root@vm1:/home/user# cat service2.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: nginx-svc2
-spec:
-  ports:
-    - name: web
-      port: 80
-      targetPort: 80
-  selector:
-    app: myapp
-```
-
-```
-root@vm1:/home/user# microk8s kubectl apply -f service2.yaml
-service/nginx-svc2 created
-
-```
-4. Продемонстрировать состояние пода до и после запуска сервиса.
-
-```
-До
-microk8s kubectl get pods
-NAME                          READY   STATUS     RESTARTS   AGE
-myapp-pod                     0/1     Init:0/1   0          55s
-
-После
-microk8s kubectl get pods
+root@vm1:/home/user# microk8s kubectl get pods
 NAME                          READY   STATUS    RESTARTS   AGE
-myapp-pod                     1/1     Running   0          3m16s
+deployment-7bd9c887c4-s75kx   2/2     Running   0          9m5s
+daemonset-z2m4x               1/1     Running   0          2m2s
+
+root@vm1:/home/user#  microk8s kubectl exec daemonset-z2m4x -it -- sh
+/ # tail -n 10 /var/log/syslog
+Oct 21 08:41:52 vm1 microk8s.daemon-kubelite[2761]: I1021 08:41:52.558423    2761 handler.go:232] Adding GroupVersion crd.projectcalico.org v1 to ResourceManager
+Oct 21 08:41:52 vm1 microk8s.daemon-kubelite[2761]: I1021 08:41:52.558501    2761 handler.go:232] Adding GroupVersion crd.projectcalico.org v1 to ResourceManager
+Oct 21 08:41:52 vm1 microk8s.daemon-kubelite[2761]: I1021 08:41:52.558654    2761 handler.go:232] Adding GroupVersion crd.projectcalico.org v1 to ResourceManager
+Oct 21 08:43:07 vm1 systemd[1]: Started snap.microk8s.microk8s.6d638a81-6fef-468c-87ed-53c9701e641a.scope.
+Oct 21 08:43:07 vm1 systemd[1]: snap.microk8s.microk8s.6d638a81-6fef-468c-87ed-53c9701e641a.scope: Deactivated successfully.
+Oct 21 08:43:09 vm1 systemd[1]: Starting Cleanup of Temporary Directories...
+Oct 21 08:43:09 vm1 systemd[1]: run-containerd-runc-k8s.io-7c80cbc858e1cecd4b5398b52aeda0a8a9b4c76637ef018a1c7897b08536605b-runc.qQLSlK.mount: Deactivated successfully.
+Oct 21 08:43:09 vm1 systemd[1]: systemd-tmpfiles-clean.service: Deactivated successfully.
+Oct 21 08:43:09 vm1 systemd[1]: Finished Cleanup of Temporary Directories.
+Oct 21 08:43:33 vm1 systemd[1]: Started snap.microk8s.microk8s.d90ce080-911f-4693-be4b-f318a52f2a16.scope.
 ```
 ------
