@@ -1,184 +1,183 @@
-# Домашнее задание к занятию «Базовые объекты K8S» - Вдовин Вадим
+# Домашнее задание к занятию «Хранение в K8s. Часть 2» - Вдовин Вадим
 
 ### Цель задания
 
-В тестовой среде для работы с Kubernetes, установленной в предыдущем ДЗ, необходимо развернуть Pod с приложением и подключиться к нему со своего локального компьютера. 
+В тестовой среде Kubernetes нужно создать PV и продемострировать запись и хранение файлов.
 
 ------
 
 ### Чеклист готовности к домашнему заданию
 
-1. Установленное k8s-решение (например, MicroK8S).
+1. Установленное K8s-решение (например, MicroK8S).
 2. Установленный локальный kubectl.
-3. Редактор YAML-файлов с подключенным Git-репозиторием.
+3. Редактор YAML-файлов с подключенным GitHub-репозиторием.
 
 ------
 
-### Инструменты и дополнительные материалы, которые пригодятся для выполнения задания
+### Дополнительные материалы для выполнения задания
 
-1. Описание [Pod](https://kubernetes.io/docs/concepts/workloads/pods/) и примеры манифестов.
-2. Описание [Service](https://kubernetes.io/docs/concepts/services-networking/service/).
-
-------
-
-### Задание 1. Создать Pod с именем hello-world
-
-1. Создать манифест (yaml-конфигурацию) Pod.
-2. Использовать image - gcr.io/kubernetes-e2e-test-images/echoserver:2.2.
-3. Подключиться локально к Pod с помощью `kubectl port-forward` и вывести значение (curl или в браузере).
-
-```
-root@vm2:~# cat hello-world.yaml 
-apiVersion : v1
-kind: Pod
-metadata:
-  name: pod
-spec:
-  containers:
-    - name : pod
-      image: gcr.io/kubernetes-e2e-test-images/echoserver:2.2
-      ports:
-        - containerPort: 8080
-root@vm2:~# kubectl apply -f hello-world.yaml
-pod/pod created
-```
-
-```
-root@vm2:~# microk8s kubectl get pods
-NAME          READY   STATUS    RESTARTS   AGE
-hello-world   1/1     Running   0          52s
-```
-
-```
-root@vm2:~# kubectl port-forward pod/pod 8888:8080
-Forwarding from 127.0.0.1:8888 -> 8080
-Forwarding from [::1]:8888 -> 8080
-Handling connection for 8888
-```
-
-<details>
-<summary>curl --insecure localhost:8001</summary>
-root@vm2:/home/user# curl --insecure localhost:8888
-
-
-Hostname: pod
-
-Pod Information:
-        -no pod information available-
-
-Server values:
-        server_version=nginx: 1.12.2 - lua: 10010
-
-Request Information:
-        client_address=127.0.0.1
-        method=GET
-        real path=/
-        query=
-        request_version=1.1
-        request_scheme=http
-        request_uri=http://localhost:8080/
-
-Request Headers:
-        accept=*/*  
-        host=localhost:8888  
-        user-agent=curl/7.81.0  
-
-Request Body:
-        -no body in request-
-</details>
+1. [Инструкция по установке NFS в MicroK8S](https://microk8s.io/docs/nfs). 
+2. [Описание Persistent Volumes](https://kubernetes.io/docs/concepts/storage/persistent-volumes/). 
+3. [Описание динамического провижининга](https://kubernetes.io/docs/concepts/storage/dynamic-provisioning/). 
+4. [Описание Multitool](https://github.com/wbitt/Network-MultiTool).
 
 ------
 
-### Задание 2. Создать Service и подключить его к Pod
+### Задание 1
 
-1. Создать Pod с именем netology-web.
-2. Использовать image — gcr.io/kubernetes-e2e-test-images/echoserver:2.2.
-3. Создать Service с именем netology-svc и подключить к netology-web.
-4. Подключиться локально к Service с помощью `kubectl port-forward` и вывести значение (curl или в браузере).
+**Что нужно сделать**
 
-```
-root@vm2:~# cat netology-web.yaml 
-apiVersion : v1
-kind: Pod
-metadata:
-  name: netology-web
-  labels:
-    app: netology
-spec:
-  containers:
-    - name : netology-web
-      image: gcr.io/kubernetes-e2e-test-images/echoserver:2.2
-      ports:
-        - containerPort: 8080
-```
-```
-root@vm2:~# cat netology-svc.yaml 
-apiVersion: v1
-kind: Service
-metadata:
-  name: netology-svc
-spec:
-  ports:
-  - port: 80
-    targetPort: 8080
-  selector:
-    app: netology
-```
-```
-root@vm2:~# kubectl apply -f netology-web.yaml
-pod/netology-web created
-root@vm2:~# kubectl apply -f netology-svc.yaml
-service/netology-svc created
-root@vm2:~# microk8s kubectl get pods
-NAME           READY   STATUS    RESTARTS   AGE
-hello-world    1/1     Running   0          29m
-netology-web   1/1     Running   0          2m49s
+Создать Deployment приложения, использующего локальный PV, созданный вручную.
 
-root@vm2:~# kubectl get pods -o wide
-NAME           READY   STATUS    RESTARTS   AGE   IP             NODE   NOMINATED NODE   READINESS GATES
-hello-world    1/1     Running   0          28m   10.1.185.198   vm2    <none>           <none>
-netology-web   1/1     Running   0          91s   10.1.185.201   vm2    <none>           <none>
-
-root@vm2:~# kubectl get service -o wide
-NAME           TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)   AGE    SELECTOR
-kubernetes     ClusterIP   10.152.183.1     <none>        443/TCP   6h7m   <none>
-netology-svc   ClusterIP   10.152.183.143   <none>        80/TCP    93s    app=netology
-```
+1. Создать Deployment приложения, состоящего из контейнеров busybox и multitool.
 
 ```
-root@vm2:~kubectl port-forward service/netology-svc 8889:80
-Forwarding from 127.0.0.1:8889 -> 8080
-Forwarding from [::1]:8889 -> 8080
-Handling connection for 8889
+root@vm1:/home/user# microk8s kubectl apply -f deployment1.yaml
+deployment.apps/deployment created
 ```
-<details>
-<summary>curl --insecure localhost:8001</summary>
-root@vm2:/home/user# curl --insecure localhost:8889
+2. Создать PV и PVC для подключения папки на локальной ноде, которая будет использована в поде.
 
+```
+root@vm1:/home/user# microk8s kubectl apply -f pv.yaml
+persistentvolume/pv created
 
-Hostname: netology-web
+root@vm1:/home/user# microk8s kubectl apply -f pvc.yaml
+persistentvolumeclaim/pvc created
 
-Pod Information:
-        -no pod information available-
+root@vm1:/home/user# microk8s kubectl get deployments
+NAME         READY   UP-TO-DATE   AVAILABLE   AGE
+deployment   1/1     1            1           5m25s
 
-Server values:
-        server_version=nginx: 1.12.2 - lua: 10010
+root@vm1:/home/user# microk8s kubectl get pv
+NAME   CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM         STORAGECLASS   REASON   AGE
+pv     1Gi        RWO            Delete           Bound    default/pvc                           93s
 
-Request Information:
-        client_address=127.0.0.1
-        method=GET
-        real path=/
-        query=
-        request_version=1.1
-        request_scheme=http
-        request_uri=http://localhost:8080/
+root@vm1:/home/user# microk8s kubectl get pvc
+NAME   STATUS   VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+pvc    Bound    pv       1Gi        RWO                           69s
+```
+3. Продемонстрировать, что multitool может читать файл, в который busybox пишет каждые пять секунд в общей директории.
 
-Request Headers:
-        accept=*/*  
-        host=localhost:8889  
-        user-agent=curl/7.81.0  
+```
+root@vm1:/home/user#  microk8s kubectl get pods
+NAME                         READY   STATUS    RESTARTS   AGE
+deployment-c57b49d9d-lxb5p   2/2     Running   0          6m18s
 
-Request Body:
-        -no body in request-
-</details>
+root@vm1:/home/user# microk8s kubectl exec deployment-c57b49d9d-lxb5p -c multitool  -- tail -n 10 /my/output.txt
+Thu Jun 6 10:45:25 UTC 2024
+Every 5.0s: date                                            2024-06-06 10:45:30
+
+Thu Jun 6 10:45:30 UTC 2024
+Every 5.0s: date                                            2024-06-06 10:45:35
+
+Thu Jun 6 10:45:35 UTC 2024
+Every 5.0s: date                                            2024-06-06 10:45:40
+
+Thu Jun 6 10:45:40 UTC 2024
+```
+4. Удалить Deployment и PVC. Продемонстрировать, что после этого произошло с PV. Пояснить, почему.
+```
+root@vm1:/home/user# microk8s kubectl get deployments
+NAME         READY   UP-TO-DATE   AVAILABLE   AGE
+deployment   1/1     1            1           7m24s
+
+root@vm1:/home/user# microk8s kubectl delete deployments deployment
+deployment.apps "deployment" deleted
+
+root@vm1:/home/user# microk8s kubectl get pvc
+NAME   STATUS   VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+pvc    Bound    pv       1Gi        RWO                           2m56s
+
+root@vm1:/home/user# microk8s kubectl delete pvc pvc
+persistentvolumeclaim "pvc" deleted
+
+root@vm1:/home/user# kubectl get pv
+NAME   CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM         STORAGECLASS   REASON   AGE
+pv     1Gi        RWO            Delete           Bound    default/pvc                           3m46s
+
+Файл сохранился на локальном диске ноды.
+
+```
+5. Продемонстрировать, что файл сохранился на локальном диске ноды. Удалить PV.  Продемонстрировать что произошло с файлом после удаления PV. Пояснить, почему.
+```
+root@vm1:/home/user# ls /my/pv/output.txt
+/my/pv/output.txt
+
+root@vm1:/home/user# microk8s kubectl delete pv pv
+persistentvolume "pv" deleted
+
+root@vm1:/home/user# ls /my/pv/output.txt
+/my/pv/output.txt
+```
+
+При удалении PV не удаляются данные, связанные с PV. Они сохраняются на диске ноды. Удаление PV лишь освобождает ресурсы PV для будущего использования и разрывает связь между PV и PVC.
+
+------
+
+### Задание 2
+
+**Что нужно сделать**
+
+Создать Deployment приложения, которое может хранить файлы на NFS с динамическим созданием PV.
+
+1. Включить и настроить NFS-сервер на MicroK8S.
+
+[Инструкция по установке NFS в MicroK8S](https://microk8s.io/docs/nfs)
+
+2. Создать Deployment приложения состоящего из multitool, и подключить к нему PV, созданный автоматически на сервере NFS.
+
+```
+root@vm1:/home/user# microk8s kubectl apply -f deployment2.yaml
+deployment.apps/multitool created
+
+root@vm1:/home/user# microk8s kubectl apply -f - < sc-nfs.yaml
+storageclass.storage.k8s.io/nfs-csi created
+
+root@vm1:/home/user# microk8s kubectl apply -f - < pvc-nfs.yaml
+persistentvolumeclaim/my-pvc created
+
+root@vm1:/home/user# microk8s kubectl describe pvc my-pvc
+Name:          my-pvc
+Namespace:     default
+StorageClass:  nfs-csi
+Status:        Bound
+Volume:        pvc-251da93d-a314-45bd-8b7a-29d1e2d52154
+Labels:        <none>
+Annotations:   pv.kubernetes.io/bind-completed: yes
+               pv.kubernetes.io/bound-by-controller: yes
+               volume.beta.kubernetes.io/storage-provisioner: nfs.csi.k8s.io
+               volume.kubernetes.io/storage-provisioner: nfs.csi.k8s.io
+Finalizers:    [kubernetes.io/pvc-protection]
+Capacity:      1Gi
+Access Modes:  RWO
+VolumeMode:    Filesystem
+Used By:       multitool-75f7ccd67-g9f6s
+Events:
+  Type     Reason                 Age                From                                                     Message
+  ----     ------                 ----               ----                                                     -------
+  Warning  ProvisioningFailed     27s (x2 over 35s)  persistentvolume-controller                              storageclass.storage.k8s.io "nfs-csi" not found
+  Normal   Provisioning           12s                nfs.csi.k8s.io_vm1_e5ceb823-5218-4b9a-bf08-bc8cf2c93a00  External provisioner is provisioning volume for claim "default/my-pvc"
+  Normal   ExternalProvisioning   12s (x2 over 12s)  persistentvolume-controller                              waiting for a volume to be created, either by external provisioner "nfs.csi.k8s.io" or manually created by system administrator
+  Normal   ProvisioningSucceeded  12s                nfs.csi.k8s.io_vm1_e5ceb823-5218-4b9a-bf08-bc8cf2c93a00  Successfully provisioned volume pvc-251da93d-a314-45bd-8b7a-29d1e2d52154
+
+```
+3. Продемонстрировать возможность чтения и записи файла изнутри пода. 
+```
+root@vm1:~/home/user# microk8s kubectl get pods
+NAME                        READY   STATUS    RESTARTS   AGE
+multitool-75f7ccd67-g9f6s   2/2     Running   0          9m39s
+
+root@vm1:/home/user# microk8s kubectl exec multitool-75f7ccd67-g9f6s -c multitool  -- tail -n 10 /my/output.txt
+Thu Jun 6 11:34:53 UTC 2024
+Every 5.0s: date                                            2024-06-06 11:34:58
+
+Thu Jun 6 11:34:58 UTC 2024
+Every 5.0s: date                                            2024-06-06 11:35:03
+
+Thu Jun 6 11:35:03 UTC 2024
+Every 5.0s: date                                            2024-06-06 11:35:08
+
+Thu Jun 6 11:35:08 UTC 2024
+```
+
 ------
