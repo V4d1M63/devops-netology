@@ -1,235 +1,106 @@
-# Домашнее задание к занятию «Запуск приложений в K8S» - Вдовин Вадим
+# Домашнее задание к занятию «Управление доступом» - Вдовин Вадим
 
 ### Цель задания
 
-В тестовой среде для работы с Kubernetes, установленной в предыдущем ДЗ, необходимо развернуть Deployment с приложением, состоящим из нескольких контейнеров, и масштабировать его.
+В тестовой среде Kubernetes нужно предоставить ограниченный доступ пользователю.
 
 ------
 
 ### Чеклист готовности к домашнему заданию
 
-1. Установленное k8s-решение (например, MicroK8S).
+1. Установлено k8s-решение, например MicroK8S.
 2. Установленный локальный kubectl.
-3. Редактор YAML-файлов с подключённым git-репозиторием.
+3. Редактор YAML-файлов с подключённым github-репозиторием.
 
 ------
 
-### Инструменты и дополнительные материалы, которые пригодятся для выполнения задания
+### Инструменты / дополнительные материалы, которые пригодятся для выполнения задания
 
-1. [Описание](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/) Deployment и примеры манифестов.
-2. [Описание](https://kubernetes.io/docs/concepts/workloads/pods/init-containers/) Init-контейнеров.
-3. [Описание](https://github.com/wbitt/Network-MultiTool) Multitool.
+1. [Описание](https://kubernetes.io/docs/reference/access-authn-authz/rbac/) RBAC.
+2. [Пользователи и авторизация RBAC в Kubernetes](https://habr.com/ru/company/flant/blog/470503/).
+3. [RBAC with Kubernetes in Minikube](https://medium.com/@HoussemDellai/rbac-with-kubernetes-in-minikube-4deed658ea7b).
 
 ------
 
-### Задание 1. Создать Deployment и обеспечить доступ к репликам приложения из другого Pod
+### Задание 1. Создайте конфигурацию для подключения пользователя
 
-1. Создать Deployment приложения, состоящего из двух контейнеров — nginx и multitool. Решить возникшую ошибку.
-
+1. Создайте и подпишите SSL-сертификат для подключения к кластеру.
 ```
-user@vm1:~$ cat deployment.yaml
-apiVersion : apps/v1
-kind: Deployment
-metadata:
-  name: netology1
-  labels:
-    app: nginx
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: nginx
-  template:
-    metadata:
-      labels:
-        app: nginx
-    spec:
-      containers:
-        - name: nginx
-          image: nginx
-          ports:
-            - containerPort: 80
-        - name: multitool
-          image: wbitt/network-multitool
-          ports:
-            - containerPort: 8080
-          env:
-            - name: HTTP_PORT
-              value: "8080"
+root@vm1:/home/user# openssl genrsa -out vadim.key 2048
+root@vm1:/home/user# openssl req -new -key vadim.key -out vadim.csr -subj "/CN=vadim/O=group1"
+root@vm1:/home/user# openssl x509 -req -in vadim.csr -CA /var/snap/microk8s/6070/certs/ca.crt -CAkey /var/snap/microk8s/6070/certs/ca.key -CAcreateserial -out vadim.crt -days 500
+Certificate request self-signature ok
+subject=CN = vadim, O = group1
 ```
-```
-user@vm1:~$ kubectl apply -f deployment.yaml
-deployment.apps/netology1 created
-
-user@vm1:~$ microk8s kubectl get deployments
-NAME        READY   UP-TO-DATE   AVAILABLE   AGE
-netology1   1/1     1            1           11m
-```
-
-2. После запуска увеличить количество реплик работающего приложения до 2.
+2. Настройте конфигурационный файл kubectl для подключения.
 
 ```
-Изменил на 2 реплики.
-root@vm1:/home/user# microk8s kubectl apply -f deployment.yaml
-deployment.apps/netology1 configured
-```
+root@vm1:/home/user# kubectl config set-context vadim-context --cluster=microk8s-cluster --user=vadim
+Context "vadim-context" created.
 
-3. Продемонстрировать количество подов до и после масштабирования.
-
-До
-```
-root@vm1:/home/user# microk8s kubectl get pods
-NAME                         READY   STATUS    RESTARTS   AGE
-netology1-7d974d59c4-hwg6w   2/2     Running   0          5m
-```
-
-После
-```
-root@vm1:/home/user# microk8s kubectl get pods
-NAME                         READY   STATUS    RESTARTS   AGE
-netology1-7d974d59c4-hwg6w   2/2     Running   0          13m
-netology1-7d974d59c4-2blx5   2/2     Running   0          63s
-```
-4. Создать Service, который обеспечит доступ до реплик приложений из п.1.
-
-```
-root@vm1:/home/user# cat service.yaml
+root@vm1:/home/user# kubectl config view
 apiVersion: v1
-kind: Service
+clusters:
+- cluster:
+    certificate-authority-data: DATA+OMITTED
+    server: https://10.129.0.6:16443
+  name: microk8s-cluster
+contexts:
+- context:
+    cluster: microk8s-cluster
+    user: admin
+  name: microk8s
+- context:
+    cluster: microk8s-cluster
+    user: vadim
+  name: vadim-context
+current-context: microk8s
+kind: Config
+preferences: {}
+users:
+- name: admin
+  user:
+    token: REDACTED
+- name: vadim
+  user:
+    client-certificate: /home/user/cert/vadim.crt
+    client-key: /home/user/cert/vadim.key
+```
+3. Создайте роли и все необходимые настройки для пользователя.
+
+```
+root@vm1:/home/user# kubectl apply -f role_binding.yaml
+rolebinding.rbac.authorization.k8s.io/pod-reader created
+root@vm1:/home/user# kubectl apply -f role.yaml
+role.rbac.authorization.k8s.io/pod-desc-logs created
+```
+4. Предусмотрите права пользователя. Пользователь может просматривать логи подов и их конфигурацию (`kubectl logs pod <pod_id>`, `kubectl describe pod <pod_id>`).
+
+```
+Добавляем в роль verbs: где ["watch", "list"]
+
+root@vm1:/home/user# kubectl get role pod-desc-logs -o yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
 metadata:
-  name: nginx-svc
-spec:
-  ports:
-    - name: web
-      port: 80
-      targetPort: 80
-  selector:
-    app: nginx
-```
-```
-root@vm1:/home/user# microk8s kubectl apply -f service.yaml
-service/nginx-svc created
-```
-```
-root@vm1:/home/user# microk8s kubectl get svc
-NAME         TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)   AGE
-kubernetes   ClusterIP   10.152.183.1     <none>        443/TCP   32m
-nginx-svc    ClusterIP   10.152.183.186   <none>        80/TCP    3m34s
-```
-
-5. Создать отдельный Pod с приложением multitool и убедиться с помощью `curl`, что из пода есть доступ до приложений из п.1.
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"rbac.authorization.k8s.io/v1","kind":"Role","metadata":{"annotations":{},"name":"pod-desc-logs","namespace":"default"},"rules":[{"apiGroups":[""],"resources":["pods","pods/log"],"verbs":["watch","list","get"]}]}
+  creationTimestamp: "2024-06-13T15:43:45Z"
+  name: pod-desc-logs
+  namespace: default
+  resourceVersion: "2126"
+  uid: 834c7ee6-790d-4059-b028-554274d91f82
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - pods/log
+  verbs:
+  - watch
+  - list
+  - get
 
 ```
-root@vm1:/home/user# microk8s kubectl run multitool --image=wbitt/network-multitool
-pod/multitool created
-
-root@vm1:/home/user# microk8s kubectl exec multitool -- curl 10.152.183.186
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-100   615  100   615    0     0   831k      0 --:--:-- --:--:-- --:--:--  600k
-<!DOCTYPE html>
-<html>
-<head>
-<title>Welcome to nginx!</title>
-<style>
-html { color-scheme: light dark; }
-body { width: 35em; margin: 0 auto;
-font-family: Tahoma, Verdana, Arial, sans-serif; }
-</style>
-</head>
-<body>
-<h1>Welcome to nginx!</h1>
-<p>If you see this page, the nginx web server is successfully installed and
-working. Further configuration is required.</p>
-
-<p>For online documentation and support please refer to
-<a href="http://nginx.org/">nginx.org</a>.<br/>
-Commercial support is available at
-<a href="http://nginx.com/">nginx.com</a>.</p>
-
-<p><em>Thank you for using nginx.</em></p>
-</body>
-</html>
-```
-
-------
-
-### Задание 2. Создать Deployment и обеспечить старт основного контейнера при выполнении условий
-
-1. Создать Deployment приложения nginx и обеспечить старт контейнера только после того, как будет запущен сервис этого приложения.
-
-```
-cat deployment2.yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: myapp-pod
-  labels:
-    app.kubernetes.io/name: MyApp
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: myapp
-  template:
-    metadata:
-      labels:
-        app: myapp
-spec:
-  containers:
-  - name: myapp-container
-    image: nginx:1.14.2
-  initContainers:
-  - name: init-myservice
-    image: busybox:1.28
-    command: ['sh', '-c', 'until nslookup nginx-svc2; do echo waiting for nginx-svc2; sleep 2; done;']
-```
-```
-root@vm1:/home/user# microk8s kubectl apply -f deployment2.yaml
-pod/myapp-pod created
-```
-2. Убедиться, что nginx не стартует. В качестве Init-контейнера взять busybox.
-
-```
-root@vm1:/home/user# microk8s kubectl logs myapp-pod
-Defaulted container "myapp-container" out of: myapp-container, init-myservice (init)
-Error from server (BadRequest): container "myapp-container" in pod "myapp-pod" is waiting to start: PodInitializing
-
-```
-
-3. Создать и запустить Service. Убедиться, что Init запустился.
-
-```
-root@vm1:/home/user# cat service2.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: nginx-svc2
-spec:
-  ports:
-    - name: web
-      port: 80
-      targetPort: 80
-  selector:
-    app: myapp
-```
-
-```
-root@vm1:/home/user# microk8s kubectl apply -f service2.yaml
-service/nginx-svc2 created
-
-```
-4. Продемонстрировать состояние пода до и после запуска сервиса.
-
-```
-До
-microk8s kubectl get pods
-NAME                          READY   STATUS     RESTARTS   AGE
-myapp-pod                     0/1     Init:0/1   0          55s
-
-После
-microk8s kubectl get pods
-NAME                          READY   STATUS    RESTARTS   AGE
-myapp-pod                     1/1     Running   0          3m16s
-```
-------
+5. Предоставьте манифесты и скриншоты и/или вывод необходимых команд.
