@@ -1,151 +1,65 @@
-## Домашнее задание к занятию "Системы контроля версий"- "Вдовин Вадим"
- 
+# Домашнее задание к занятию «Организация сети» - Вдовин Вадим
 
-### Задача 1. Создать и настроить репозиторий для дальнейшей работы на курсе.
+### Подготовка к выполнению задания
 
-В рамках курса вы будете писать скрипты и создавать конфигурации для различных систем, которые необходимо сохранять для будущего использования. Сначала надо создать и настроить локальный репозиторий, после чего добавить удалённый репозиторий на GitHub.
+1. Домашнее задание состоит из обязательной части, которую нужно выполнить на провайдере Yandex Cloud, и дополнительной части в AWS (выполняется по желанию). 
+2. Все домашние задания в блоке 15 связаны друг с другом и в конце представляют пример законченной инфраструктуры.  
+3. Все задания нужно выполнить с помощью Terraform. Результатом выполненного домашнего задания будет код в репозитории. 
+4. Перед началом работы настройте доступ к облачным ресурсам из Terraform, используя материалы прошлых лекций и домашнее задание по теме «Облачные провайдеры и синтаксис Terraform». Заранее выберите регион (в случае AWS) и зону.
 
-### Создание репозитория и первого коммита.
+---
+### Задание 1. Yandex Cloud 
 
-1. Зарегистрируйте аккаунт на https://github.com/. Если предпочитаете другое хранилище для репозитория, можно использовать его.
+**Что нужно сделать**
 
-2. Создайте публичный репозиторий, который будете использовать дальше на протяжении всего курса, желательное с названием devops-netology. Обязательно поставьте галочку Initialize this repository with a README.
+1. Создать пустую VPC. Выбрать зону.
+2. Публичная подсеть.
 
-![Безымянный](https://github.com/V4d1M63/devops-netology/assets/130470784/b093a3a3-bbc3-45a8-8c8b-f16ea0ea3446)
+ - Создать в VPC subnet с названием public, сетью 192.168.10.0/24.
+ - Создать в этой подсети NAT-инстанс, присвоив ему адрес 192.168.10.254. В качестве image_id использовать fd80mrhj8fl2oe87o4e1.
+ - Создать в этой публичной подсети виртуалку с публичным IP, подключиться к ней и убедиться, что есть доступ к интернету.
 
-3. Создайте авторизационный токен для клонирования репозитория.
-
-![1](https://github.com/V4d1M63/devops-netology/assets/130470784/e962cde5-fc73-4b43-a104-ee408487ade9)
-
-
-4. Склонируйте репозиторий, используя протокол HTTPS (git clone ...).
 ```
-# git clone https://github.com/V4d1M63/devops-netology.git
-Cloning into 'devops-netology'...
-remote: Enumerating objects: 32, done.
-remote: Counting objects: 100% (32/32), done.
-remote: Compressing objects: 100% (24/24), done.
-remote: Total 32 (delta 0), reused 0 (delta 0), pack-reused 0
-Receiving objects: 100% (32/32), 51.09 KiB | 670.00 KiB/s, done.
+### Подключаемся к public:
+
+root@vm-mint:/home/msi/devops-netology# ssh -i /root/.ssh/id.rsa ubuntu@158.160.116.100
+Welcome to Ubuntu 20.04.6 LTS (GNU/Linux 5.4.0-156-generic x86_64)
+
+### Проверяем доступ в интернет:
+
+ubuntu@public:~/$ ping google.com
+PING google.com (173.194.220.100) 56(84) bytes of data.
+64 bytes from lk-in-f100.1e100.net (173.194.220.100): icmp_seq=1 ttl=58 time=21.1 ms
+64 bytes from lk-in-f100.1e100.net (173.194.220.100): icmp_seq=2 ttl=58 time=21.0 ms
+64 bytes from lk-in-f100.1e100.net (173.194.220.100): icmp_seq=3 ttl=58 time=20.9 ms
+
 ```
-5. Перейдите в каталог с клоном репозитория (cd devops-netology).
+![14-clopro-homeworks-1 1](https://github.com/user-attachments/assets/f4a7928c-6a11-45f8-9d62-0cf8d54b5b6c)
 
-6. Произведите первоначальную настройку Git, указав своё настоящее имя, чтобы нам было проще общаться, и email (git config --global user.name и git config --global user.email johndoe@example.com).
+3. Приватная подсеть.
+ - Создать в VPC subnet с названием private, сетью 192.168.20.0/24.
+ - Создать route table. Добавить статический маршрут, направляющий весь исходящий трафик private сети в NAT-инстанс.
+ - Создать в этой приватной подсети виртуалку с внутренним IP, подключиться к ней через виртуалку, созданную ранее, и убедиться, что есть доступ к интернету.
+
 ```
-└─# git config -l
-credential.helper=wincred
-alias.c=config
-user.email=chief.viper2012@yandex.ru
-user.name=Vadim
-core.repositoryformatversion=0
-core.filemode=true
-core.bare=false
-core.logallrefupdates=true
-remote.origin.url=https://github.com/V4d1M63/devops-netology.git
-remote.origin.fetch=+refs/heads/*:refs/remotes/origin/*
-branch.main.remote=origin
-branch.main.merge=refs/heads/main
-```
-7. Выполните команду git status и запомните результат.
+### Подключаемся к private находясь в public:
 
-![2](https://github.com/V4d1M63/devops-netology/assets/130470784/1fc6f8e8-2108-43cb-a96c-4379f12437a0)
+ubuntu@public:~/$ ssh -i /home/ubuntu/.ssh/id.rsa ubuntu@192.168.20.17
+Welcome to Ubuntu 20.04.6 LTS (GNU/Linux 5.4.0-156-generic x86_64)
 
-8. Отредактируйте файл README.md любым удобным способом, тем самым переведя файл в состояние Modified.
+### Проверяем доступ в интернет:
 
-9. Ещё раз выполните git status и продолжайте проверять вывод этой команды после каждого следующего шага.
-
-![3](https://github.com/V4d1M63/devops-netology/assets/130470784/884994ca-ab51-40ac-a10b-4f4b5ebcaef4)
-
-10. Теперь посмотрите изменения в файле README.md, выполнив команды git diff и git diff --staged.
-
-![4](https://github.com/V4d1M63/devops-netology/assets/130470784/506ace1c-a7a9-4ef5-8f77-66c2c5ea2f5e)
-
-11. Переведите файл в состояние staged (или, как говорят, просто добавьте файл в коммит) командой git add README.md.
-```
-└─# git add README.md
-```
-12. И ещё раз выполните команды git diff и git diff --staged. Поиграйте с изменениями и этими командами, чтобы чётко понять, что и когда они отображают.
-
-![5](https://github.com/V4d1M63/devops-netology/assets/130470784/c4a0892f-cf23-4bff-8ef4-3357ba6198a4)
-
-13. Теперь можно сделать коммит git commit -m 'First commit'.
-
-![6](https://github.com/V4d1M63/devops-netology/assets/130470784/62b1377d-44be-4f1f-949e-6d075452dae5)
-
-14. И ещё раз посмотреть выводы команд git status, git diff и git diff --staged.
-
-![7](https://github.com/V4d1M63/devops-netology/assets/130470784/3f8e416f-7ce7-491c-af55-6b26f074a3e6)
-
-### Создание файлов .gitignore и второго коммита.
-
-1. Создайте файл .gitignore (обратите внимание на точку в начале файла), проверьте его статус сразу после создания.
-2. Добавьте файл .gitignore в следующий коммит (git add...).
-3. На одном из следующих блоков вы будете изучать Terraform, давайте сразу создадим соотвествующий каталог terraform и внутри этого каталога — файл .gitignore по примеру: https://github.com/github/gitignore/blob/master/Terraform.gitignore.
-4. В файле README.md опишите своими словами, какие файлы будут проигнорированы в будущем благодаря добавленному .gitignore.
-5. Закоммитьте все новые и изменённые файлы. Комментарий к коммиту должен быть Added gitignore.
-
-![8](https://github.com/V4d1M63/devops-netology/assets/130470784/cae1cd31-feea-4b51-b214-8316f8f468e1)
-
-### Эксперимент с удалением и перемещением файлов (третий и четвёртый коммит).
-
-1. Создайте файлы will_be_deleted.txt (с текстом will_be_deleted) и will_be_moved.txt (с текстом will_be_moved) и закоммите их с комментарием Prepare to delete and move.
-```
-# git commit -m 'Prepare to delete and move'
-On branch main
-Your branch is up to date with 'origin/main'.
-
-Untracked files:
-  (use "git add <file>..." to include in what will be committed)
-        will_be_deleted.txt
-        will_be_moved.txt
-
-nothing added to commit but untracked files present (use "git add" to track)
-```
-2. В случае необходимости обратитесь к официальной документации — здесь подробно описано, как выполнить следующие шаги.
-3. Удалите файл will_be_deleted.txt с диска и из репозитория.
-```
-# git rm will_be_deleted.txt
-rm 'will_be_deleted.txt'
-
-# git status
-On branch main
-Your branch is up to date with 'origin/main'.
-
-Changes to be committed:
-  (use "git restore --staged <file>..." to unstage)
-        deleted:    will_be_deleted.txt
-```
-4. Переименуйте (переместите) файл will_be_moved.txt на диске и в репозитории, чтобы он стал называться has_been_moved.txt.
-```
-# git mv will_be_moved.txt has_been_moved.txt
-
-# git status
-On branch main
-Your branch is up to date with 'origin/main'.
-
-Changes to be committed:
-  (use "git restore --staged <file>..." to unstage)
-        renamed:    will_be_moved.txt -> has_been_moved.txt
-```
-5. Закоммитьте результат работы с комментарием Moved and deleted.
-```
-# git add .
-
-# git commit -m 'Moved and deleted'
-[main 4473d6f] Moved and deleted
- 1 file changed, 0 insertions(+), 0 deletions(-)
- rename will_be_moved.txt => has_been_moved.txt (100%)
-
-# git push
-Enumerating objects: 3, done.
-Counting objects: 100% (3/3), done.
-Compressing objects: 100% (2/2), done.
-Writing objects: 100% (2/2), 244 bytes | 244.00 KiB/s, done.
-Total 2 (delta 1), reused 0 (delta 0), pack-reused 0
-remote: Resolving deltas: 100% (1/1), completed with 1 local object.
-To https://github.com/V4d1M63/devops-netology
-   ebe246f..4473d6f  main -> main
+ubuntu@private:~$ ping google.com
+PING google.com (216.58.209.206) 56(84) bytes of data.
+64 bytes from hem09s03-in-f14.1e100.net (216.58.209.206): icmp_seq=1 ttl=54 time=25.5 ms
+64 bytes from hem09s03-in-f14.1e100.net (216.58.209.206): icmp_seq=2 ttl=54 time=24.4 ms
+64 bytes from hem09s03-in-f14.1e100.net (216.58.209.206): icmp_seq=3 ttl=54 time=24.4 ms
 ```
 
+Resource Terraform для Yandex Cloud:
 
+- [VPC subnet](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/vpc_subnet).
+- [Route table](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/vpc_route_table).
+- [Compute Instance](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/compute_instance).
 
+---
