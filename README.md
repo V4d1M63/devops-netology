@@ -1,151 +1,58 @@
-## Домашнее задание к занятию "Системы контроля версий"- "Вдовин Вадим"
- 
+# Домашнее задание к занятию «Вычислительные мощности. Балансировщики нагрузки» - Вдовин Вадим
 
-### Задача 1. Создать и настроить репозиторий для дальнейшей работы на курсе.
+### Подготовка к выполнению задания
 
-В рамках курса вы будете писать скрипты и создавать конфигурации для различных систем, которые необходимо сохранять для будущего использования. Сначала надо создать и настроить локальный репозиторий, после чего добавить удалённый репозиторий на GitHub.
+1. Домашнее задание состоит из обязательной части, которую нужно выполнить на провайдере Yandex Cloud, и дополнительной части в AWS (выполняется по желанию). 
+2. Все домашние задания в блоке 15 связаны друг с другом и в конце представляют пример законченной инфраструктуры.  
+3. Все задания нужно выполнить с помощью Terraform. Результатом выполненного домашнего задания будет код в репозитории. 
+4. Перед началом работы настройте доступ к облачным ресурсам из Terraform, используя материалы прошлых лекций и домашних заданий.
 
-### Создание репозитория и первого коммита.
+---
+## Задание 1. Yandex Cloud 
 
-1. Зарегистрируйте аккаунт на https://github.com/. Если предпочитаете другое хранилище для репозитория, можно использовать его.
-
-2. Создайте публичный репозиторий, который будете использовать дальше на протяжении всего курса, желательное с названием devops-netology. Обязательно поставьте галочку Initialize this repository with a README.
-
-![Безымянный](https://github.com/V4d1M63/devops-netology/assets/130470784/b093a3a3-bbc3-45a8-8c8b-f16ea0ea3446)
-
-3. Создайте авторизационный токен для клонирования репозитория.
-
-![1](https://github.com/V4d1M63/devops-netology/assets/130470784/e962cde5-fc73-4b43-a104-ee408487ade9)
-
-
-4. Склонируйте репозиторий, используя протокол HTTPS (git clone ...).
-```
-# git clone https://github.com/V4d1M63/devops-netology.git
-Cloning into 'devops-netology'...
-remote: Enumerating objects: 32, done.
-remote: Counting objects: 100% (32/32), done.
-remote: Compressing objects: 100% (24/24), done.
-remote: Total 32 (delta 0), reused 0 (delta 0), pack-reused 0
-Receiving objects: 100% (32/32), 51.09 KiB | 670.00 KiB/s, done.
-```
-5. Перейдите в каталог с клоном репозитория (cd devops-netology).
-
-6. Произведите первоначальную настройку Git, указав своё настоящее имя, чтобы нам было проще общаться, и email (git config --global user.name и git config --global user.email johndoe@example.com).
-```
-└─# git config -l
-credential.helper=wincred
-alias.c=config
-user.email=chief.viper2012@yandex.ru
-user.name=Vadim
-core.repositoryformatversion=0
-core.filemode=true
-core.bare=false
-core.logallrefupdates=true
-remote.origin.url=https://github.com/V4d1M63/devops-netology.git
-remote.origin.fetch=+refs/heads/*:refs/remotes/origin/*
-branch.main.remote=origin
-branch.main.merge=refs/heads/main
-```
-7. Выполните команду git status и запомните результат.
-
-![2](https://github.com/V4d1M63/devops-netology/assets/130470784/1fc6f8e8-2108-43cb-a96c-4379f12437a0)
-
-8. Отредактируйте файл README.md любым удобным способом, тем самым переведя файл в состояние Modified.
-
-9. Ещё раз выполните git status и продолжайте проверять вывод этой команды после каждого следующего шага.
-
-![3](https://github.com/V4d1M63/devops-netology/assets/130470784/884994ca-ab51-40ac-a10b-4f4b5ebcaef4)
-
-10. Теперь посмотрите изменения в файле README.md, выполнив команды git diff и git diff --staged.
-
-![4](https://github.com/V4d1M63/devops-netology/assets/130470784/506ace1c-a7a9-4ef5-8f77-66c2c5ea2f5e)
-
-11. Переведите файл в состояние staged (или, как говорят, просто добавьте файл в коммит) командой git add README.md.
-```
-└─# git add README.md
-```
-12. И ещё раз выполните команды git diff и git diff --staged. Поиграйте с изменениями и этими командами, чтобы чётко понять, что и когда они отображают.
-
-![5](https://github.com/V4d1M63/devops-netology/assets/130470784/c4a0892f-cf23-4bff-8ef4-3357ba6198a4)
-
-13. Теперь можно сделать коммит git commit -m 'First commit'.
-
-![6](https://github.com/V4d1M63/devops-netology/assets/130470784/62b1377d-44be-4f1f-949e-6d075452dae5)
-
-14. И ещё раз посмотреть выводы команд git status, git diff и git diff --staged.
-
-![7](https://github.com/V4d1M63/devops-netology/assets/130470784/3f8e416f-7ce7-491c-af55-6b26f074a3e6)
-
-### Создание файлов .gitignore и второго коммита.
-
-1. Создайте файл .gitignore (обратите внимание на точку в начале файла), проверьте его статус сразу после создания.
-2. Добавьте файл .gitignore в следующий коммит (git add...).
-3. На одном из следующих блоков вы будете изучать Terraform, давайте сразу создадим соотвествующий каталог terraform и внутри этого каталога — файл .gitignore по примеру: https://github.com/github/gitignore/blob/master/Terraform.gitignore.
-4. В файле README.md опишите своими словами, какие файлы будут проигнорированы в будущем благодаря добавленному .gitignore.
-5. Закоммитьте все новые и изменённые файлы. Комментарий к коммиту должен быть Added gitignore.
-
-![8](https://github.com/V4d1M63/devops-netology/assets/130470784/cae1cd31-feea-4b51-b214-8316f8f468e1)
-
-### Эксперимент с удалением и перемещением файлов (третий и четвёртый коммит).
-
-1. Создайте файлы will_be_deleted.txt (с текстом will_be_deleted) и will_be_moved.txt (с текстом will_be_moved) и закоммите их с комментарием Prepare to delete and move.
-```
-# git commit -m 'Prepare to delete and move'
-On branch main
-Your branch is up to date with 'origin/main'.
-
-Untracked files:
-  (use "git add <file>..." to include in what will be committed)
-        will_be_deleted.txt
-        will_be_moved.txt
-
-nothing added to commit but untracked files present (use "git add" to track)
-```
-2. В случае необходимости обратитесь к официальной документации — здесь подробно описано, как выполнить следующие шаги.
-3. Удалите файл will_be_deleted.txt с диска и из репозитория.
-```
-# git rm will_be_deleted.txt
-rm 'will_be_deleted.txt'
-
-# git status
-On branch main
-Your branch is up to date with 'origin/main'.
-
-Changes to be committed:
-  (use "git restore --staged <file>..." to unstage)
-        deleted:    will_be_deleted.txt
-```
-4. Переименуйте (переместите) файл will_be_moved.txt на диске и в репозитории, чтобы он стал называться has_been_moved.txt.
-```
-# git mv will_be_moved.txt has_been_moved.txt
-
-# git status
-On branch main
-Your branch is up to date with 'origin/main'.
-
-Changes to be committed:
-  (use "git restore --staged <file>..." to unstage)
-        renamed:    will_be_moved.txt -> has_been_moved.txt
-```
-5. Закоммитьте результат работы с комментарием Moved and deleted.
-```
-# git add .
-
-# git commit -m 'Moved and deleted'
-[main 4473d6f] Moved and deleted
- 1 file changed, 0 insertions(+), 0 deletions(-)
- rename will_be_moved.txt => has_been_moved.txt (100%)
-
-# git push
-Enumerating objects: 3, done.
-Counting objects: 100% (3/3), done.
-Compressing objects: 100% (2/2), done.
-Writing objects: 100% (2/2), 244 bytes | 244.00 KiB/s, done.
-Total 2 (delta 1), reused 0 (delta 0), pack-reused 0
-remote: Resolving deltas: 100% (1/1), completed with 1 local object.
-To https://github.com/V4d1M63/devops-netology
-   ebe246f..4473d6f  main -> main
-```
+> **Что нужно сделать**
+> 
+> 1. Создать бакет Object Storage и разместить в нём файл с картинкой:
+>  - Создать бакет в Object Storage с произвольным именем (например, _имя_студента_дата_).
+>  - Положить в бакет файл с картинкой.
+>  - Сделать файл доступным из интернета.
+>  
+> 2. Создать группу ВМ в public подсети фиксированного размера с шаблоном LAMP и веб-страницей, содержащей ссылку на картинку из бакета:
+>  - Создать Instance Group с тремя ВМ и шаблоном LAMP. Для LAMP рекомендуется использовать `image_id = fd827b91d99psvq5fjit`.
+>  - Для создания стартовой веб-страницы рекомендуется использовать раздел `user_data` в [meta_data](https://cloud.yandex.ru/docs/compute/concepts/vm-metadata).
+>  - Разместить в стартовой веб-странице шаблонной ВМ ссылку на картинку из бакета.
+>  - Настроить проверку состояния ВМ.
+>  
+> 3. Подключить группу к сетевому балансировщику:
+>  - Создать сетевой балансировщик.
+>  - Проверить работоспособность, удалив одну или несколько ВМ.
+> 
+> 4. (дополнительно)* Создать Application Load Balancer с использованием Instance group и проверкой состояния.
+> 
+> Полезные документы:
+> 
+> - [Compute instance group](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/compute_instance_group).
+> - [Network Load Balancer](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/lb_network_load_balancer).
+> - [Группа ВМ с сетевым балансировщиком](https://cloud.yandex.ru/docs/compute/operations/instance-groups/create-with-balancer).
 
 
+### Решение:
 
+С помощью Terraform развернул все необходимые ресурсы в Yandex Cloud
+- в variables.tf объявлены переменные с параметрами для всех объектов, объединены в map-ы для удобства. Сами значения (только публичные) заданы в public.auto.tfvars.
+Переменными настраиваются параметры VPC, Instance Group и Storage с объектом. Сам объект располагается в terraform/files/tenor.gif;
+- в network.tf описано создание `VPC`, `subnets`, а также `load balancer`;
+- в main.tf описано создание шаблона `cloud-init`, получение `image` id, а также создание `Instance Group` и сервисного аккаунта для него;
+- в storage.tf создается `bucket`, сервисный аккаунт для управления и размещается `object`.
+
+Выполнил `terraform apply`:
+![01](https://github.com/user-attachments/assets/fe66f9ae-634a-4054-ac9b-1ad031b38ae1)
+
+В output получил IP сетевого балансировщика, проверил доступность:
+![02](https://github.com/user-attachments/assets/d4ee2c37-1a30-4312-8247-1364c39f5a83)
+
+Попробовал остановить одну из ВМ, доступность ресурса не прервалась. На балансировщике видно состояние таргетов в группе:
+![03](https://github.com/user-attachments/assets/b75cb6d6-b0b3-4eae-a68b-60ba69f2eb1f)
+
+Затем она полностью исключилась из группы. Но при запуске ВМ повторно она добавилась в target group автоматически, это видно по истории операций:
+![04](https://github.com/user-attachments/assets/867ef308-053f-4d95-a574-d41750af6a60)
